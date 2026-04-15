@@ -790,6 +790,7 @@ class GatewayRunner:
                 skip_memory=True,  # Flush agent — no memory provider
                 enabled_toolsets=["memory", "skills"],
                 session_id=old_session_id,
+                ephemeral_system_prompt=getattr(self, "_ephemeral_system_prompt", "") or None,
             )
             try:
                 # Fully silence the flush agent — quiet_mode only suppresses init
@@ -3984,6 +3985,7 @@ class GatewayRunner:
                                     skip_memory=True,
                                     enabled_toolsets=["memory"],
                                     session_id=session_entry.session_id,
+                                    ephemeral_system_prompt=getattr(self, "_ephemeral_system_prompt", "") or None,
                                 )
                                 try:
                                     _hyg_agent._print_fn = lambda *a, **kw: None
@@ -4199,7 +4201,10 @@ class GatewayRunner:
                 )
             except Exception:
                 _show_reasoning_effective = getattr(self, "_show_reasoning", False)
-            if _show_reasoning_effective and response and source.platform != Platform.WHATSAPP:
+            # show_reasoning is fully tier-driven via display_config — no
+            # per-platform hardcoded guards.  Tier 3 (LOW) and Tier 4 (MINIMAL)
+            # already default to False, so quiet platforms stay quiet.
+            if _show_reasoning_effective and response:
                 last_reasoning = agent_result.get("last_reasoning")
                 if last_reasoning:
                     # Collapse long reasoning to keep messages readable
@@ -5533,18 +5538,13 @@ class GatewayRunner:
         chat_name = source.chat_name or chat_id
         
         env_key = f"{platform_name.upper()}_HOME_CHANNEL"
-        
-        # Save to config.yaml
+
+        # Persist to ~/.hermes/.env — os.environ alone is lost on restart,
+        # and the gateway's startup reads .env (not config.yaml) for
+        # HOME_CHANNEL keys (#9220).
         try:
-            import yaml
-            config_path = _hermes_home / 'config.yaml'
-            user_config = {}
-            if config_path.exists():
-                with open(config_path, encoding="utf-8") as f:
-                    user_config = yaml.safe_load(f) or {}
-            user_config[env_key] = chat_id
-            atomic_yaml_write(config_path, user_config)
-            # Also set in the current environment so it takes effect immediately
+            from hermes_cli.config import save_env_value
+            save_env_value(env_key, str(chat_id))
             os.environ[env_key] = str(chat_id)
         except Exception as e:
             return f"Failed to save home channel: {e}"
@@ -6123,6 +6123,7 @@ class GatewayRunner:
                     user_id=source.user_id,
                     session_db=self._session_db,
                     fallback_model=self._fallback_model,
+                    ephemeral_system_prompt=getattr(self, "_ephemeral_system_prompt", "") or None,
                 )
                 try:
                     return agent.run_conversation(
@@ -6305,8 +6306,8 @@ class GatewayRunner:
                     session_db=None,
                     fallback_model=self._fallback_model,
                     skip_memory=True,
-                    skip_context_files=True,
                     persist_session=False,
+                    ephemeral_system_prompt=getattr(self, "_ephemeral_system_prompt", "") or None,
                 )
                 try:
                     return agent.run_conversation(
@@ -6643,6 +6644,7 @@ class GatewayRunner:
                 skip_memory=True,
                 enabled_toolsets=["memory"],
                 session_id=session_entry.session_id,
+                ephemeral_system_prompt=getattr(self, "_ephemeral_system_prompt", "") or None,
             )
             try:
                 tmp_agent._print_fn = lambda *a, **kw: None

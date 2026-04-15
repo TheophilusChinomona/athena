@@ -687,6 +687,16 @@ def _run_cleanup():
             )
     except Exception:
         pass
+    # Final durable flush — covers SIGTERM/SIGHUP/window-close paths that
+    # raise KeyboardInterrupt out of prompt_toolkit before the in-conversation
+    # persist calls can run (#6481).
+    try:
+        if _active_agent_ref and hasattr(_active_agent_ref, '_persist_session'):
+            _history = getattr(_active_agent_ref, 'conversation_history', None) or []
+            if _history:
+                _active_agent_ref._persist_session(_history, _history)
+    except Exception:
+        pass
 
 
 # =============================================================================

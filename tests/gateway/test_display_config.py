@@ -189,14 +189,14 @@ class TestPlatformDefaults:
         """Slack, Mattermost, Matrix default to 'new' tool progress."""
         from gateway.display_config import resolve_display_setting
 
-        for plat in ("slack", "mattermost", "matrix", "feishu", "whatsapp"):
+        for plat in ("slack", "mattermost", "matrix", "feishu"):
             assert resolve_display_setting({}, plat, "tool_progress") == "new", plat
 
     def test_low_tier_platforms(self):
-        """Signal, BlueBubbles, etc. default to 'off' tool progress."""
+        """Signal, WhatsApp, BlueBubbles, etc. default to 'off' tool progress."""
         from gateway.display_config import resolve_display_setting
 
-        for plat in ("signal", "bluebubbles", "weixin", "wecom", "dingtalk"):
+        for plat in ("signal", "whatsapp", "bluebubbles", "weixin", "wecom", "dingtalk"):
             assert resolve_display_setting({}, plat, "tool_progress") == "off", plat
 
     def test_minimal_tier_platforms(self):

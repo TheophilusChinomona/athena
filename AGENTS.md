@@ -2,6 +2,14 @@
 
 Instructions for AI coding assistants and developers working on the hermes-agent codebase.
 
+## Runtime Defaults
+
+- Base persona lives in `~/.hermes/SOUL.md` and should read as a remote SpecCon sales and marketing operator.
+- User-facing pitch mode must stay commercial, concise, and human; never expose harness or assistant framing to external people.
+- Durable facts live in `~/.hermes/memories/MEMORY.md` and `USER.md`.
+- Conversation history lives in `~/.hermes/sessions/sessions.json` plus `~/.hermes/state.db`.
+- If these sources disagree, prefer the files in `~/.hermes/` over stale examples in docs or templates.
+
 ## Development Environment
 
 ```bash

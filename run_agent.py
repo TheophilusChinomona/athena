@@ -1258,7 +1258,8 @@ class AIAgent:
                 # lock clears.  The session row may be missing from the index
                 # for this run, but that is recoverable (flushes upsert rows).
                 logger.warning(
-                    "Session DB create_session failed (session_search still available): %s", e
+                    "Session DB create_session failed (session_search still available): %s",
+                    e, exc_info=True,
                 )
         
         # In-memory todo list for task planning (one per agent/session)
@@ -2631,7 +2632,7 @@ class AIAgent:
             # doesn't poison the next flush — the unwritten tail will retry.
             logger.error(
                 "Session DB append_message failed at idx %s: %s (will retry next flush)",
-                self._last_flushed_db_idx, e,
+                self._last_flushed_db_idx, e, exc_info=True,
             )
 
     def _get_messages_up_to_last_assistant(self, messages: List[Dict]) -> List[Dict]:

@@ -674,7 +674,10 @@ class GatewayRunner:
             from hermes_state import SessionDB
             self._session_db = SessionDB()
         except Exception as e:
-            logger.debug("SQLite session store not available: %s", e)
+            logger.warning(
+                "Session DB init failed — session_search will be unavailable this session: %s",
+                e, exc_info=True,
+            )
         
         # DM pairing store for code-based user authorization
         from gateway.pairing import PairingStore

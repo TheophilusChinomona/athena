@@ -1,6 +1,8 @@
-# Hermes Agent - Development Guide
+# Athena — Development Guide
 
-Instructions for AI coding assistants and developers working on the hermes-agent codebase.
+> **Fork note:** This is [Athena](https://github.com/TheophilusChinomona/hermes-agent), the reliability fork of [Hermes Agent](https://github.com/NousResearch/hermes-agent). Internal package names (`hermes_cli/`, `~/.hermes/`) are unchanged — only the user-facing brand is Athena.
+
+Instructions for AI coding assistants and developers working on the Athena (hermes-agent) codebase.
 
 ## Runtime Defaults
 

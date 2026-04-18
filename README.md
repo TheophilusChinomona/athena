@@ -30,7 +30,7 @@ Use any model you want — [Nous Portal](https://portal.nousresearch.com), [Open
 ## Quick Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/TheophilusChinomona/hermes-agent/main/scripts/install.sh | bash
 ```
 
 Works on Linux, macOS, WSL2, and Android via Termux. The installer handles the platform-specific setup for you.

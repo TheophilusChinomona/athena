@@ -2,7 +2,7 @@
 
 Implementation lives in the standalone hermes-memory-lancedb package.
 Install: pip install hermes-memory-lancedb
-Repo: https://github.com/andrew-maseko/hermes-memory-lancedb
+Repo: https://github.com/TheophilusChinomona/hermes-memory-lancedb
 """
 
 try:

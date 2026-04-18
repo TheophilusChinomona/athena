@@ -579,6 +579,69 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
 [#F29C38]⠀⠀⠀⠀⠀⠀⠀⣼⡟⠀⠀⢻⣧⠀⠀⠀⠀⠀⠀⠀⠀[/]
 [dim #7A3511]⠀⠀⠀⠀⠀⠀⠀tail flame lit⠀⠀⠀⠀⠀⠀⠀⠀[/]""",
     },
+    "athena": {
+        "name": "athena",
+        "description": "Athena — wisdom and strategy, silver and midnight blue",
+        "colors": {
+            "banner_border": "#4A6FA5",
+            "banner_title": "#C0C8D8",
+            "banner_accent": "#7B9EC8",
+            "banner_dim": "#2A3D5A",
+            "banner_text": "#EDF0F5",
+            "ui_accent": "#7B9EC8",
+            "ui_label": "#C0C8D8",
+            "ui_ok": "#4caf50",
+            "ui_error": "#ef5350",
+            "ui_warn": "#ffa726",
+            "prompt": "#EDF0F5",
+            "input_rule": "#4A6FA5",
+            "response_border": "#7B9EC8",
+            "session_label": "#C0C8D8",
+            "session_border": "#3A4F6A",
+        },
+        "spinner": {
+            "waiting_faces": ["(⊙)", "(◎)", "(Ω)", "(∴)", "(⊛)"],
+            "thinking_faces": ["(⊙)", "(Ω)", "(∴)", "(⊛)", "(◎)"],
+            "thinking_verbs": [
+                "strategising", "reading the field", "weighing options",
+                "recalling context", "holding the line", "planning the move",
+                "studying signals", "sharpening the edge",
+            ],
+            "wings": [
+                ["⟪⊙", "⊙⟫"],
+                ["⟪Ω", "Ω⟫"],
+                ["⟪∴", "∴⟫"],
+                ["⟪⊛", "⊛⟫"],
+            ],
+        },
+        "branding": {
+            "agent_name": "Athena",
+            "welcome": "Athena online. Type your message or /help for commands.",
+            "goodbye": "Strategy complete. Ω",
+            "response_label": " Ω Athena ",
+            "prompt_symbol": "⊙ ❯ ",
+            "help_header": "(⊙) Available Commands",
+        },
+        "tool_prefix": "┊",
+        "banner_logo": """[bold #C0C8D8] █████╗ ████████╗██╗  ██╗███████╗███╗   ██╗ █████╗ [/]
+[bold #A8B8CC]██╔══██╗╚══██╔══╝██║  ██║██╔════╝████╗  ██║██╔══██╗[/]
+[#7B9EC8]███████║   ██║   ███████║█████╗  ██╔██╗ ██║███████║[/]
+[#5A7BA8]██╔══██║   ██║   ██╔══██║██╔══╝  ██║╚██╗██║██╔══██║[/]
+[#4A6FA5]██║  ██║   ██║   ██║  ██║███████╗██║ ╚████║██║  ██║[/]
+[#2A3D5A]╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝  ╚═╝[/]""",
+        "banner_hero": """[#2A3D5A]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
+[#4A6FA5]⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⠀⠀⠀⠀⠀⠀⣀⠀⠀⠀⠀⠀⠀⠀⠀[/]
+[#7B9EC8]⠀⠀⠀⠀⠀⠀⠀⢀⣾⣿⣷⣄⠀⠀⣠⣾⣿⣷⡀⠀⠀⠀⠀⠀⠀[/]
+[#7B9EC8]⠀⠀⠀⠀⠀⠀⢠⣿⠋⠀⠙⢿⣷⣾⡿⠋⠀⠙⣿⡄⠀⠀⠀⠀⠀[/]
+[#C0C8D8]⠀⠀⠀⠀⠀⠀⣿⡟⠀⠀⠀⠀⢻⣿⠀⠀⠀⠀⢻⣿⠀⠀⠀⠀⠀[/]
+[#C0C8D8]⠀⠀⠀⠀⠀⠀⣿⡇⠀⠀⠀⠀⢸⣿⠀⠀⠀⠀⢸⣿⠀⠀⠀⠀⠀[/]
+[#7B9EC8]⠀⠀⠀⠀⠀⠀⢿⣧⡀⠀⠀⢀⣼⣿⣄⠀⠀⢀⣼⡿⠀⠀⠀⠀⠀[/]
+[#4A6FA5]⠀⠀⠀⠀⠀⠀⠈⠻⣿⣿⣿⡿⠟⠘⢿⣿⣿⣿⠟⠁⠀⠀⠀⠀⠀[/]
+[#2A3D5A]⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⡿⠀⠀⠀⠀⢿⣿⠀⠀⠀⠀⠀⠀⠀⠀[/]
+[#4A6FA5]⠀⠀⠀⠀⠀⠀⠀⣠⣾⡿⠁⠀⠀⠀⠀⠈⢿⣷⣄⠀⠀⠀⠀⠀⠀[/]
+[#7B9EC8]⠀⠀⠀⠀⠀⠀⠀⠙⠛⠁⠀⠀⠀⠀⠀⠀⠀⠙⠛⠀⠀⠀⠀⠀⠀[/]
+[dim #2A3D5A]⠀⠀⠀⠀⠀⠀⠀⠀strategy engine ready⠀⠀⠀⠀⠀⠀⠀[/]""",
+    },
 }
 
 
@@ -587,7 +650,7 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
 # =============================================================================
 
 _active_skin: Optional[SkinConfig] = None
-_active_skin_name: str = "default"
+_active_skin_name: str = "athena"
 
 
 def _skins_dir() -> Path:
@@ -711,7 +774,7 @@ def init_skin_from_config(config: dict) -> None:
     display = config.get("display") or {}
     if not isinstance(display, dict):
         display = {}
-    skin_name = display.get("skin", "default")
+    skin_name = display.get("skin", "athena")
     if isinstance(skin_name, str) and skin_name.strip():
         set_active_skin(skin_name.strip())
     else:

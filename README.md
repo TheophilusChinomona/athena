@@ -34,8 +34,7 @@ Use any model you want — [OpenRouter](https://openrouter.ai) (200+ models), [N
 <tr><td><b>A closed learning loop</b></td><td>Agent-curated memory with periodic nudges. Autonomous skill creation after complex tasks. Skills self-improve during use. FTS5 session search with LLM summarization for cross-session recall. <a href="https://github.com/plastic-labs/honcho">Honcho</a> dialectic user modeling. Compatible with the <a href="https://agentskills.io">agentskills.io</a> open standard.</td></tr>
 <tr><td><b>Scheduled automations</b></td><td>Built-in cron scheduler with delivery to any platform. Daily reports, nightly backups, weekly audits — all in natural language, running unattended.</td></tr>
 <tr><td><b>Delegates and parallelizes</b></td><td>Spawn isolated subagents for parallel workstreams. Write Python scripts that call tools via RPC, collapsing multi-step pipelines into zero-context-cost turns.</td></tr>
-<tr><td><b>Runs anywhere, not just your laptop</b></td><td>Six terminal backends — local, Docker, SSH, Daytona, Singularity, and Modal. Daytona and Modal offer serverless persistence — your agent's environment hibernates when idle and wakes on demand, costing nearly nothing between sessions. Run it on a $5 VPS or a GPU cluster.</td></tr>
-<tr><td><b>Research-ready</b></td><td>Batch trajectory generation, Atropos RL environments, trajectory compression for training the next generation of tool-calling models.</td></tr>
+<tr><td><b>Runs anywhere, not just your laptop</b></td><td>Local, Docker, and SSH terminal backends. Run it on a $5 VPS or a GPU cluster.</td></tr>
 </table>
 
 ---
@@ -46,10 +45,8 @@ Use any model you want — [OpenRouter](https://openrouter.ai) (200+ models), [N
 curl -fsSL https://raw.githubusercontent.com/TheophilusChinomona/hermes-agent/main/scripts/install.sh | bash
 ```
 
-Works on Linux, macOS, WSL2, and Android via Termux. The installer handles the platform-specific setup for you.
+Works on Linux, macOS, and WSL2.
 
-> **Android / Termux:** The tested manual path is documented in the [Termux guide](https://hermes-agent.nousresearch.com/docs/getting-started/termux). On Termux, Hermes installs a curated `.[termux]` extra because the full `.[all]` extra currently pulls Android-incompatible voice dependencies.
->
 > **Windows:** Native Windows is not supported. Please install [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) and run the command above.
 
 After installation:
@@ -140,7 +137,7 @@ systemctl --user restart hermes-gateway.service
 cd ~/.hermes/hermes-agent
 git remote add athena https://github.com/TheophilusChinomona/hermes-agent.git
 git fetch athena && git checkout -b athena-main athena/main
-source venv/bin/activate && uv pip install -e ".[all]"
+source venv/bin/activate && uv pip install -e ".[theo]"
 hermes config set display.skin athena
 ```
 
@@ -177,6 +174,36 @@ See `hermes claw migrate --help` for all options, or use the `openclaw-migration
 
 ---
 
+## Roadmap
+
+Athena is a curated harness built on Hermes. These milestones track where it's been and where it's going.
+
+### Delivered
+
+- [x] Session DB errors surfaced — no more silent failure swallowing
+- [x] SOUL.md persona loading hardened across all gateway paths
+- [x] WhatsApp media delivery and formatting reliability
+- [x] Supabase client integration
+- [x] Athena skin and brand identity
+- [x] `.[theo]` curated install extra — Discord + WhatsApp + core tools only; no Termux/RL/unused backends
+- [x] Zero-migration upstream switch path — identical `~/.hermes/` paths mean no data migration
+- [x] Fork workflow tooling — sync, rebase, and PR skills for continuous upstream pulls
+
+### Active
+
+- [ ] Fallback model support — currently single point of failure when Gemini is unavailable
+- [ ] Supabase as a first-class session/memory backend (replace SQLite)
+- [ ] Gateway platform audit — remove unused platform modules (Telegram, Slack, Signal, Matrix, Email)
+
+### Planned
+
+- [ ] Persona versioning — detect and alert on SOUL.md drift across gateway paths
+- [ ] Event-driven skill improvement — trigger skill rewrites from session outcomes, not just explicit requests
+- [ ] Repo rename `hermes-agent` → `athena` — GitHub auto-redirects old URLs
+- [ ] Athena install docs — replace upstream `hermes-agent.nousresearch.com` references
+
+---
+
 ## Contributing
 
 We welcome contributions! See the [Contributing Guide](https://hermes-agent.nousresearch.com/docs/developer-guide/contributing) for development setup, code style, and PR process.
@@ -186,7 +213,7 @@ Quick start for contributors — clone and go with `setup-hermes.sh`:
 ```bash
 git clone https://github.com/TheophilusChinomona/hermes-agent.git
 cd hermes-agent
-./setup-hermes.sh     # installs uv, creates venv, installs .[all], symlinks ~/.local/bin/hermes
+./setup-hermes.sh     # installs uv, creates venv, installs .[theo], symlinks ~/.local/bin/hermes
 ./hermes              # auto-detects the venv, no need to `source` first
 ```
 
@@ -196,15 +223,9 @@ Manual path (equivalent to the above):
 curl -LsSf https://astral.sh/uv/install.sh | sh
 uv venv venv --python 3.11
 source venv/bin/activate
-uv pip install -e ".[all,dev]"
+uv pip install -e ".[theo,dev]"
 python -m pytest tests/ -q
 ```
-
-> **RL Training (optional):** To work on the RL/Tinker-Atropos integration:
-> ```bash
-> git submodule update --init tinker-atropos
-> uv pip install -e "./tinker-atropos"
-> ```
 
 ---
 

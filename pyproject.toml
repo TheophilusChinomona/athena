@@ -72,6 +72,7 @@ theo = [
   "discord.py[voice]>=2.7.1,<3",
   "aiohttp>=3.13.3,<4",
   "qrcode>=7.0,<8",
+  "hermes-memory-lancedb>=1.1.0",
 ]
 all = [
   "hermes-agent[messaging]",

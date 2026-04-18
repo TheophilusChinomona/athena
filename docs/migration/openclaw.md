@@ -1,6 +1,6 @@
-# Migrating from OpenClaw to Hermes Agent
+# Migrating from OpenClaw to Athena
 
-This guide covers how to import your OpenClaw settings, memories, skills, and API keys into Hermes Agent.
+This guide covers how to import your OpenClaw settings, memories, skills, and API keys into Athena.
 
 ## Three Ways to Migrate
 
@@ -37,7 +37,7 @@ The migration always shows a full preview of what will be imported before making
 Ask the agent to run the migration for you:
 
 ```
-> Migrate my OpenClaw setup to Hermes
+> Migrate my OpenClaw setup to Athena
 ```
 
 The agent will use the `openclaw-migration` skill to:
@@ -124,7 +124,7 @@ hermes claw migrate --source /path/to/.openclaw
 ```
 
 ### "Migration script not found"
-The migration script ships with Hermes Agent. If you installed via pip (not git clone), the `optional-skills/` directory may not be present. Install the skill from the Skills Hub:
+The migration script ships with Athena. If you installed via pip (not git clone), the `optional-skills/` directory may not be present. Install the skill from the Skills Hub:
 ```bash
 hermes skills install openclaw-migration
 ```

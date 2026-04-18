@@ -121,9 +121,36 @@ All documentation lives at **[hermes-agent.nousresearch.com/docs](https://hermes
 
 ---
 
+## Migrating from upstream Hermes Agent
+
+Coming from [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent)? Athena is a direct fork — identical internal paths, zero data migration needed. Your `~/.hermes/` data, sessions, and SOUL.md are fully compatible.
+
+**Quickest path — reinstall over existing:**
+
+```bash
+# Your ~/.hermes/ data is untouched
+curl -fsSL https://raw.githubusercontent.com/TheophilusChinomona/hermes-agent/main/scripts/install.sh | bash
+hermes config set display.skin athena
+systemctl --user restart hermes-gateway.service
+```
+
+**Git remote switch (if you cloned upstream):**
+
+```bash
+cd ~/.hermes/hermes-agent
+git remote add athena https://github.com/TheophilusChinomona/hermes-agent.git
+git fetch athena && git checkout -b athena-main athena/main
+source venv/bin/activate && uv pip install -e ".[all]"
+hermes config set display.skin athena
+```
+
+See [`docs/migration/from-upstream-hermes.md`](docs/migration/from-upstream-hermes.md) for the full guide, or ask Andrew: `Switch me from upstream Hermes to Athena`.
+
+---
+
 ## Migrating from OpenClaw
 
-If you're coming from OpenClaw, Hermes can automatically import your settings, memories, skills, and API keys.
+Athena can automatically import your OpenClaw settings, memories, skills, and API keys.
 
 **During first-time setup:** The setup wizard (`hermes setup`) automatically detects `~/.openclaw` and offers to migrate before configuration begins.
 
@@ -146,7 +173,7 @@ What gets imported:
 - **TTS assets** — workspace audio files
 - **Workspace instructions** — AGENTS.md (with `--workspace-target`)
 
-See `hermes claw migrate --help` for all options, or use the `openclaw-migration` skill for an interactive agent-guided migration with dry-run previews.
+See `hermes claw migrate --help` for all options, or use the `openclaw-migration` skill for an interactive agent-guided migration.
 
 ---
 

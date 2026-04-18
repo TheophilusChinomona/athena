@@ -2,7 +2,7 @@
 name: from-hermes-agent
 description: Migrate from upstream Hermes Agent (NousResearch) to Athena. Since Athena is a direct fork with identical internal paths, all data is 100% compatible — this is purely a repo switch + skin update. No data migration required.
 version: 1.0.0
-author: Athena (SpecCon)
+author: Theophilus Chinomona
 license: MIT
 metadata:
   hermes:

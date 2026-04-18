@@ -1,0 +1,11 @@
+name: lancedb
+version: 1.0.0
+description: "LanceDB vector memory — local hybrid retrieval (vector + BM25 RRF), Weibull decay, OpenAI embeddings."
+pip_dependencies:
+  - "hermes-memory-lancedb>=1.0.0"
+requires_env:
+  - OPENAI_API_KEY
+hooks:
+  - on_session_end
+  - on_pre_compress
+  - on_memory_write

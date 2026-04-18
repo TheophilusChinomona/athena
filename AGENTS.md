@@ -1,6 +1,20 @@
-# Hermes Agent - Development Guide
+# Athena — Development Guide
 
-Instructions for AI coding assistants and developers working on the hermes-agent codebase.
+> **Fork note:** This is [Athena](https://github.com/TheophilusChinomona/hermes-agent), the reliability fork of [Hermes Agent](https://github.com/NousResearch/hermes-agent). Internal package names (`hermes_cli/`, `~/.hermes/`) are unchanged — only the user-facing brand is Athena.
+
+Instructions for AI coding assistants and developers working on the Athena (hermes-agent) codebase.
+
+## Runtime Defaults
+
+- Base persona lives in `~/.hermes/SOUL.md` and should read as a remote SpecCon sales and marketing operator. It's loaded into slot #1 of the system prompt by `agent/prompt_builder.load_soul_md()` whenever `skip_context_files=False` (the default).
+- Background agents spawned by the gateway (memory flush, context compression, `/compress`, deferred tasks, `/btw`) now receive the same SOUL.md identity and the user's `config.yaml agent.system_prompt` via `ephemeral_system_prompt` — background ops no longer fall back to `DEFAULT_AGENT_IDENTITY`.
+- User-facing pitch mode must stay commercial, concise, and human; never expose harness or assistant framing to external people.
+- WhatsApp and other non-editable platforms run in `_TIER_LOW` of `gateway/display_config.py`: no tool progress, no reasoning display, no streaming. Reasoning suppression is fully tier-driven — there are no hardcoded per-platform guards.
+- `/sethome` persists the platform's `*_HOME_CHANNEL` to `~/.hermes/.env` (not `config.yaml`), so the setting survives gateway restart.
+- Durable facts live in `~/.hermes/memories/MEMORY.md` and `USER.md`.
+- Conversation history lives in `~/.hermes/sessions/sessions.json` plus `~/.hermes/state.db`. The CLI registers a final durable flush in the atexit cleanup path so SIGTERM/SIGHUP don't drop the last turn.
+- Session DB flush (`_flush_messages_to_session_db`) advances its index per successful append and never on an exception, so a transient SQLite failure retries cleanly on the next flush instead of silently skipping messages.
+- If these sources disagree, prefer the files in `~/.hermes/` over stale examples in docs or templates.
 
 ## Development Environment
 

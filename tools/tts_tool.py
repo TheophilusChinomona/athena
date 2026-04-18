@@ -112,6 +112,35 @@ def _get_default_output_dir() -> str:
     from hermes_constants import get_hermes_dir
     return str(get_hermes_dir("cache/audio", "audio_cache"))
 
+
+def _resolve_output_dir(preferred_dir: Optional[Path] = None) -> Path:
+    """Return a writable directory for generated TTS files.
+
+    Primary location is Hermes-home scoped audio cache. If that path is not
+    writable for any reason, fall back to a temp directory so voice replies
+    still work instead of failing the whole tool call.
+    """
+    candidates = []
+    if preferred_dir is not None:
+        candidates.append(Path(preferred_dir))
+    else:
+        candidates.append(Path(_get_default_output_dir()))
+    candidates.append(Path(tempfile.gettempdir()) / "hermes_audio_cache")
+
+    last_error: Optional[Exception] = None
+    for out_dir in candidates:
+        try:
+            out_dir.mkdir(parents=True, exist_ok=True)
+            if os.access(out_dir, os.W_OK):
+                return out_dir
+            raise PermissionError(f"Directory not writable: {out_dir}")
+        except Exception as exc:
+            last_error = exc
+            logger.warning("TTS output dir unavailable (%s): %s", out_dir, exc)
+
+    raise OSError(f"Unable to create a writable TTS output directory: {last_error}")
+
+
 DEFAULT_OUTPUT_DIR = _get_default_output_dir()
 MAX_TEXT_LENGTH = 4000
 
@@ -806,8 +835,7 @@ def text_to_speech_tool(
         file_path = Path(output_path).expanduser()
     else:
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        out_dir = Path(DEFAULT_OUTPUT_DIR)
-        out_dir.mkdir(parents=True, exist_ok=True)
+        out_dir = _resolve_output_dir()
         # Use .ogg for Telegram with providers that support native Opus output,
         # otherwise fall back to .mp3 (Edge TTS will attempt ffmpeg conversion later).
         if want_opus and provider in ("openai", "elevenlabs", "mistral", "gemini"):

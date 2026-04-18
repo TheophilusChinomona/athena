@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hermes-agent"
 version = "0.10.0"
-description = "The self-improving AI agent — creates skills from experience, improves them during use, and runs anywhere"
+description = "Athena — reliability fork of Hermes Agent. Persistent memory, hardened persona, session integrity."
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "Nous Research" }]
@@ -34,6 +34,7 @@ dependencies = [
   "edge-tts>=7.2.7,<8",
   # Skills Hub (GitHub App JWT auth — optional, only needed for bot identity)
   "PyJWT[crypto]>=2.12.0,<3",  # CVE-2026-32597
+  "supabase>=2.28.3",
 ]
 
 [project.optional-dependencies]

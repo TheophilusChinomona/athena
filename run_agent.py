@@ -1258,7 +1258,8 @@ class AIAgent:
                 # lock clears.  The session row may be missing from the index
                 # for this run, but that is recoverable (flushes upsert rows).
                 logger.warning(
-                    "Session DB create_session failed (session_search still available): %s", e
+                    "Session DB create_session failed (session_search still available): %s",
+                    e, exc_info=True,
                 )
         
         # In-memory todo list for task planning (one per agent/session)
@@ -2598,7 +2599,9 @@ class AIAgent:
             )
             start_idx = len(conversation_history) if conversation_history else 0
             flush_from = max(start_idx, self._last_flushed_db_idx)
-            for msg in messages[flush_from:]:
+            # Advance the index per successful append so a mid-loop failure
+            # doesn't poison the next flush attempt (#8038).
+            for offset, msg in enumerate(messages[flush_from:]):
                 role = msg.get("role", "unknown")
                 content = msg.get("content")
                 tool_calls_data = None
@@ -2621,9 +2624,16 @@ class AIAgent:
                     reasoning_details=msg.get("reasoning_details") if role == "assistant" else None,
                     codex_reasoning_items=msg.get("codex_reasoning_items") if role == "assistant" else None,
                 )
-            self._last_flushed_db_idx = len(messages)
+                self._last_flushed_db_idx = flush_from + offset + 1
         except Exception as e:
-            logger.warning("Session DB append_message failed: %s", e)
+            # Don't re-raise: many callers of _persist_session cannot tolerate
+            # an exception here (they're already in cleanup/return paths).
+            # The index-per-append advance above ensures a mid-loop failure
+            # doesn't poison the next flush — the unwritten tail will retry.
+            logger.error(
+                "Session DB append_message failed at idx %s: %s (will retry next flush)",
+                self._last_flushed_db_idx, e, exc_info=True,
+            )
 
     def _get_messages_up_to_last_assistant(self, messages: List[Dict]) -> List[Dict]:
         """

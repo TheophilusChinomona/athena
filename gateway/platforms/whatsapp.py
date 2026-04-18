@@ -587,7 +587,60 @@ class WhatsAppAdapter(BasePlatformAdapter):
         for i, code in enumerate(codes):
             result = result.replace(f"{_CODE_PH}{i}\x00", code)
 
+        # --- 7. Tighten whitespace for chat rendering ---
+        # Strip trailing spaces on each line
+        result = re.sub(r"[ \t]+$", "", result, flags=re.MULTILINE)
+        # Collapse 3+ consecutive newlines to a single blank line (2 newlines)
+        result = re.sub(r"\n{3,}", "\n\n", result)
+        # Trim leading/trailing blank lines
+        result = result.strip("\n")
+
         return result
+
+    _MEDIA_EXTS = {
+        ".ogg": "audio", ".opus": "audio", ".mp3": "audio", ".m4a": "audio",
+        ".wav": "audio", ".aac": "audio",
+        ".mp4": "video", ".mov": "video", ".webm": "video", ".mkv": "video",
+        ".jpg": "image", ".jpeg": "image", ".png": "image", ".gif": "image",
+        ".webp": "image",
+        ".pdf": "document", ".doc": "document", ".docx": "document",
+        ".xls": "document", ".xlsx": "document", ".csv": "document",
+        ".txt": "document", ".zip": "document",
+    }
+
+    _PATH_RE = re.compile(r"(?P<path>(?:/[A-Za-z0-9._+~-]+){2,}\.[A-Za-z0-9]{2,6})")
+
+    def _extract_inline_media_paths(self, content: str):
+        """Find bare absolute paths to existing media files in content.
+
+        Returns (cleaned_content, [(path, media_type), ...]). Only matches
+        files that actually exist on disk and have a known media extension.
+        """
+        found: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        for m in self._PATH_RE.finditer(content):
+            path = m.group("path")
+            if path in seen:
+                continue
+            ext = os.path.splitext(path)[1].lower()
+            media_type = self._MEDIA_EXTS.get(ext)
+            if not media_type:
+                continue
+            if not os.path.isabs(path) or not os.path.isfile(path):
+                continue
+            seen.add(path)
+            found.append((path, media_type))
+
+        if not found:
+            return content, []
+
+        cleaned = content
+        for path, _ in found:
+            cleaned = cleaned.replace(path, "")
+        cleaned = re.sub(r"[ \t]+", " ", cleaned)
+        cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+        cleaned = cleaned.strip(" \t\n")
+        return cleaned, found
 
     async def send(
         self,
@@ -600,6 +653,11 @@ class WhatsAppAdapter(BasePlatformAdapter):
 
         Formats markdown for WhatsApp, splits long messages into chunks
         that preserve code block boundaries, and sends each chunk sequentially.
+
+        Belt-and-braces: if the outgoing text contains bare absolute paths
+        to existing media files (audio/video/image/document), those are
+        stripped from the text and delivered as native WhatsApp media,
+        with any remaining text used as the caption on the first attachment.
         """
         if not self._running or not self._http_session:
             return SendResult(success=False, error="Not connected")
@@ -609,6 +667,23 @@ class WhatsAppAdapter(BasePlatformAdapter):
 
         if not content or not content.strip():
             return SendResult(success=True, message_id=None)
+
+        cleaned, media_refs = self._extract_inline_media_paths(content)
+        if media_refs:
+            last_id = None
+            caption_text = self.format_message(cleaned) if cleaned else None
+            for idx, (path, media_type) in enumerate(media_refs):
+                caption = caption_text if idx == 0 else None
+                result = await self._send_media_to_bridge(
+                    chat_id=chat_id,
+                    file_path=path,
+                    media_type=media_type,
+                    caption=caption,
+                )
+                if not result.success:
+                    return result
+                last_id = result.message_id
+            return SendResult(success=True, message_id=last_id)
 
         try:
             import aiohttp

@@ -269,3 +269,141 @@ class TestWhatsAppTier:
     def test_whatsapp_tool_progress_is_new(self):
         from gateway.display_config import resolve_display_setting
         assert resolve_display_setting({}, "whatsapp", "tool_progress") == "new"
+
+
+# ---------------------------------------------------------------------------
+# Whitespace tightening (post speccon-reliability-fork fix)
+# ---------------------------------------------------------------------------
+
+class TestWhitespaceCollapse:
+    """format_message should tighten chat-hostile whitespace."""
+
+    def test_collapses_triple_newlines_to_double(self):
+        adapter = _make_adapter()
+        out = adapter.format_message("line1\n\n\n\nline2")
+        assert out == "line1\n\nline2"
+
+    def test_preserves_single_blank_line(self):
+        adapter = _make_adapter()
+        out = adapter.format_message("a\n\nb")
+        assert out == "a\n\nb"
+
+    def test_strips_trailing_spaces_per_line(self):
+        adapter = _make_adapter()
+        out = adapter.format_message("hello   \nworld\t\t")
+        assert out == "hello\nworld"
+
+    def test_trims_leading_trailing_blank_lines(self):
+        adapter = _make_adapter()
+        out = adapter.format_message("\n\nhello\n\n")
+        assert out == "hello"
+
+
+# ---------------------------------------------------------------------------
+# Inline media extraction (belt-and-braces path-detection)
+# ---------------------------------------------------------------------------
+
+class TestInlineMediaExtraction:
+    """_extract_inline_media_paths should detect real media paths."""
+
+    def test_extracts_audio_path(self, tmp_path):
+        adapter = _make_adapter()
+        audio = tmp_path / "hello.mp3"
+        audio.write_bytes(b"id3")
+        cleaned, refs = adapter._extract_inline_media_paths(
+            f"Here's the audio: {audio}"
+        )
+        assert refs == [(str(audio), "audio")]
+        assert str(audio) not in cleaned
+
+    def test_video_maps_to_video_type(self, tmp_path):
+        adapter = _make_adapter()
+        vid = tmp_path / "clip.mp4"
+        vid.write_bytes(b"\x00\x00")
+        _, refs = adapter._extract_inline_media_paths(f"see {vid}")
+        assert refs[0][1] == "video"
+
+    def test_image_and_document_types(self, tmp_path):
+        adapter = _make_adapter()
+        img = tmp_path / "a.png"; img.write_bytes(b"x")
+        doc = tmp_path / "b.pdf"; doc.write_bytes(b"%PDF")
+        _, refs = adapter._extract_inline_media_paths(f"{img} and {doc}")
+        types = {t for _, t in refs}
+        assert types == {"image", "document"}
+
+    def test_ignores_unknown_extension(self, tmp_path):
+        adapter = _make_adapter()
+        weird = tmp_path / "thing.xyz"
+        weird.write_bytes(b"x")
+        cleaned, refs = adapter._extract_inline_media_paths(str(weird))
+        assert refs == []
+        assert cleaned == str(weird)
+
+    def test_ignores_nonexistent_path(self):
+        adapter = _make_adapter()
+        cleaned, refs = adapter._extract_inline_media_paths(
+            "/home/nope/ghost.mp3"
+        )
+        assert refs == []
+
+    def test_dedupes_repeated_path(self, tmp_path):
+        adapter = _make_adapter()
+        audio = tmp_path / "same.ogg"
+        audio.write_bytes(b"x")
+        _, refs = adapter._extract_inline_media_paths(
+            f"{audio} and again {audio}"
+        )
+        assert len(refs) == 1
+
+    def test_plain_text_untouched(self):
+        adapter = _make_adapter()
+        cleaned, refs = adapter._extract_inline_media_paths("Just a normal reply.")
+        assert refs == []
+        assert cleaned == "Just a normal reply."
+
+
+class TestSendRoutesMediaPaths:
+    """send() must route inline media paths through _send_media_to_bridge."""
+
+    def test_send_strips_path_and_calls_media_bridge(self, tmp_path):
+        adapter = _make_adapter()
+        audio = tmp_path / "voice.ogg"
+        audio.write_bytes(b"id3")
+
+        adapter._check_managed_bridge_exit = AsyncMock(return_value=None)
+        adapter._send_media_to_bridge = AsyncMock()
+        from gateway.platforms.base import SendResult
+        adapter._send_media_to_bridge.return_value = SendResult(
+            success=True, message_id="mid-1"
+        )
+
+        result = asyncio.run(adapter.send(
+            chat_id="chat@x",
+            content=f"Here's your audio: {audio}",
+        ))
+
+        assert result.success is True
+        assert result.message_id == "mid-1"
+        adapter._send_media_to_bridge.assert_awaited_once()
+        call_kwargs = adapter._send_media_to_bridge.await_args.kwargs
+        assert call_kwargs["file_path"] == str(audio)
+        assert call_kwargs["media_type"] == "audio"
+        assert str(audio) not in (call_kwargs.get("caption") or "")
+
+    def test_send_no_media_goes_through_text_send(self):
+        adapter = _make_adapter()
+        adapter._check_managed_bridge_exit = AsyncMock(return_value=None)
+        adapter._send_media_to_bridge = AsyncMock()
+
+        # Mock HTTP session post to succeed
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_resp.json = AsyncMock(return_value={"messageId": "text-1"})
+        adapter._http_session.post = MagicMock(return_value=_AsyncCM(mock_resp))
+
+        result = asyncio.run(adapter.send(
+            chat_id="chat@x",
+            content="plain text reply",
+        ))
+        assert result.success is True
+        adapter._send_media_to_bridge.assert_not_awaited()

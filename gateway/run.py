@@ -674,7 +674,10 @@ class GatewayRunner:
             from hermes_state import SessionDB
             self._session_db = SessionDB()
         except Exception as e:
-            logger.debug("SQLite session store not available: %s", e)
+            logger.warning(
+                "Session DB init failed — session_search will be unavailable this session: %s",
+                e, exc_info=True,
+            )
         
         # DM pairing store for code-based user authorization
         from gateway.pairing import PairingStore
@@ -790,6 +793,7 @@ class GatewayRunner:
                 skip_memory=True,  # Flush agent — no memory provider
                 enabled_toolsets=["memory", "skills"],
                 session_id=old_session_id,
+                ephemeral_system_prompt=getattr(self, "_ephemeral_system_prompt", "") or None,
             )
             try:
                 # Fully silence the flush agent — quiet_mode only suppresses init
@@ -3984,6 +3988,7 @@ class GatewayRunner:
                                     skip_memory=True,
                                     enabled_toolsets=["memory"],
                                     session_id=session_entry.session_id,
+                                    ephemeral_system_prompt=getattr(self, "_ephemeral_system_prompt", "") or None,
                                 )
                                 try:
                                     _hyg_agent._print_fn = lambda *a, **kw: None
@@ -4199,6 +4204,9 @@ class GatewayRunner:
                 )
             except Exception:
                 _show_reasoning_effective = getattr(self, "_show_reasoning", False)
+            # show_reasoning is fully tier-driven via display_config — no
+            # per-platform hardcoded guards.  Tier 3 (LOW) and Tier 4 (MINIMAL)
+            # already default to False, so quiet platforms stay quiet.
             if _show_reasoning_effective and response:
                 last_reasoning = agent_result.get("last_reasoning")
                 if last_reasoning:
@@ -5533,18 +5541,13 @@ class GatewayRunner:
         chat_name = source.chat_name or chat_id
         
         env_key = f"{platform_name.upper()}_HOME_CHANNEL"
-        
-        # Save to config.yaml
+
+        # Persist to ~/.hermes/.env — os.environ alone is lost on restart,
+        # and the gateway's startup reads .env (not config.yaml) for
+        # HOME_CHANNEL keys (#9220).
         try:
-            import yaml
-            config_path = _hermes_home / 'config.yaml'
-            user_config = {}
-            if config_path.exists():
-                with open(config_path, encoding="utf-8") as f:
-                    user_config = yaml.safe_load(f) or {}
-            user_config[env_key] = chat_id
-            atomic_yaml_write(config_path, user_config)
-            # Also set in the current environment so it takes effect immediately
+            from hermes_cli.config import save_env_value
+            save_env_value(env_key, str(chat_id))
             os.environ[env_key] = str(chat_id)
         except Exception as e:
             return f"Failed to save home channel: {e}"
@@ -6123,6 +6126,7 @@ class GatewayRunner:
                     user_id=source.user_id,
                     session_db=self._session_db,
                     fallback_model=self._fallback_model,
+                    ephemeral_system_prompt=getattr(self, "_ephemeral_system_prompt", "") or None,
                 )
                 try:
                     return agent.run_conversation(
@@ -6305,8 +6309,8 @@ class GatewayRunner:
                     session_db=None,
                     fallback_model=self._fallback_model,
                     skip_memory=True,
-                    skip_context_files=True,
                     persist_session=False,
+                    ephemeral_system_prompt=getattr(self, "_ephemeral_system_prompt", "") or None,
                 )
                 try:
                     return agent.run_conversation(
@@ -6643,6 +6647,7 @@ class GatewayRunner:
                 skip_memory=True,
                 enabled_toolsets=["memory"],
                 session_id=session_entry.session_id,
+                ephemeral_system_prompt=getattr(self, "_ephemeral_system_prompt", "") or None,
             )
             try:
                 tmp_agent._print_fn = lambda *a, **kw: None
@@ -8724,15 +8729,22 @@ class GatewayRunner:
             or os.getenv("HERMES_TOOL_PROGRESS_MODE")
             or "all"
         )
-        # Disable tool progress for webhooks - they don't support message editing,
-        # so each progress line would be sent as a separate message.
+        # Disable auxiliary display for WhatsApp and webhooks.
+        # WhatsApp is conversational and should not surface internal traces,
+        # progress chatter, or mid-turn status updates.
         from gateway.config import Platform
-        tool_progress_enabled = progress_mode != "off" and source.platform != Platform.WEBHOOK
+        suppress_auxiliary_display = source.platform in (Platform.WHATSAPP,)
+        tool_progress_enabled = (
+            progress_mode != "off"
+            and source.platform != Platform.WEBHOOK
+            and not suppress_auxiliary_display
+        )
         # Natural assistant status messages are intentionally independent from
         # tool progress and token streaming. Users can keep tool_progress quiet
         # in chat platforms while opting into concise mid-turn updates.
         interim_assistant_messages_enabled = (
             source.platform != Platform.WEBHOOK
+            and not suppress_auxiliary_display
             and is_truthy_value(
                 display_config.get("interim_assistant_messages"),
                 default=True,

@@ -80,6 +80,37 @@ class TestMCPAuthNullGuard:
         assert auth_type == "oauth"
 
 
+# ── TTS output directory fallback ───────────────────────────────────────────
+
+class TestTTSOutputDirectoryFallback:
+    def test_prefers_primary_writable_directory(self, tmp_path):
+        from tools.tts_tool import _resolve_output_dir
+
+        preferred = tmp_path / "hermes-home" / "cache" / "audio"
+        result = _resolve_output_dir(preferred)
+
+        assert result == preferred
+        assert result.exists()
+
+    def test_falls_back_to_temp_when_primary_unwritable(self, tmp_path):
+        from tools.tts_tool import _resolve_output_dir
+        import tempfile
+
+        blocked_root = tmp_path / "blocked"
+        blocked_root.mkdir()
+        blocked_root.chmod(0o500)
+        preferred = blocked_root / "cache" / "audio"
+
+        try:
+            result = _resolve_output_dir(preferred)
+        finally:
+            blocked_root.chmod(0o700)
+
+        assert result != preferred
+        assert result.exists()
+        assert str(result).startswith(tempfile.gettempdir())
+
+
 # ── Trajectory compressor ─────────────────────────────────────────────────
 
 class TestTrajectoryCompressorNullGuard:

@@ -36,7 +36,7 @@ _HERMES_CORE_TOOLS = [
     # File manipulation
     "read_file", "write_file", "patch", "search_files",
     # Vision + image generation
-    "vision_analyze", "image_generate", "pdf_analyze",
+    "vision_analyze", "image_generate",
     # Skills
     "skills_list", "skill_view", "skill_manage",
     # Browser automation
@@ -293,6 +293,24 @@ TOOLSETS = {
     "hermes-cli": {
         "description": "Full interactive CLI toolset - all default tools plus cronjob management",
         "tools": _HERMES_CORE_TOOLS,
+        "includes": []
+    },
+
+    "scrapper": {
+        "description": "Scrapper pipeline tools - PDF validation, submodule tagging, queue management. Profile-scoped (not exposed to other agents).",
+        "tools": [
+            "pdf_analyze",
+            "scrapper_audit",
+            "scrapper_queue_next_for_reinspection",
+            "scrapper_reinspect_batch",
+            "scrapper_queue_next_for_validation",
+            "scrapper_validate_batch",
+            "scrapper_queue_next_for_tagging",
+            "scrapper_tag_batch",
+            "scrapper_stats",
+            "scrapper_fetch_pdf",
+            "scrapper_inspect_flags",
+        ],
         "includes": []
     },
     

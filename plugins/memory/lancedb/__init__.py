@@ -1,18 +1,21 @@
 """LanceDB memory plugin — MemoryProvider for vector + BM25 hybrid recall.
 
-Wraps the external hermes-memory-lancedb package as a proper MemoryProvider
-plugin. Follows the same pattern as holographic and honcho providers.
+Wraps the external athena-memory package (formerly hermes-memory-lancedb,
+renamed at v3.0.0) as a proper MemoryProvider plugin. Follows the same pattern
+as holographic and honcho providers.
 
 Config in $HERMES_HOME/config.yaml (profile-scoped):
   memory:
     provider: lancedb
 
 Requires:
-  - hermes-memory-lancedb>=1.1.0 (pip install hermes-agent[theo])
-  - OPENAI_API_KEY (for embeddings)
+  - athena-memory>=4.0.0 (pip install hermes-agent[theo])
+  - OPENAI_API_KEY (or OPENROUTER_API_KEY + LANCEDB_EMBED_PROVIDER=openrouter)
 
-The heavy LanceDB logic lives in the hermes-memory-lancedb package.
-This plugin is the thin adapter that fits it into the MemoryProvider ABC.
+The heavy lifting lives in the athena-memory package, which supports both
+LanceDB (embedded) and Postgres+pgvector backends — selected via the
+HERMES_MEMORY_BACKEND env var. This plugin is the thin adapter that fits
+it into the MemoryProvider ABC.
 """
 
 from __future__ import annotations
@@ -34,7 +37,7 @@ def _import_lancedb_provider():
     Never raises — callers should check for None.
     """
     try:
-        from hermes_memory_lancedb import LanceDBMemoryProvider
+        from athena_memory import LanceDBMemoryProvider
         return LanceDBMemoryProvider
     except ImportError:
         return None

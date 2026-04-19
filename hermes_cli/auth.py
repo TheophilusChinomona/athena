@@ -155,6 +155,14 @@ PROVIDER_REGISTRY: Dict[str, ProviderConfig] = {
         api_key_env_vars=("GOOGLE_API_KEY", "GEMINI_API_KEY"),
         base_url_env_var="GEMINI_BASE_URL",
     ),
+    "openai": ProviderConfig(
+        id="openai",
+        name="OpenAI",
+        auth_type="api_key",
+        inference_base_url="https://api.openai.com/v1",
+        api_key_env_vars=("OPENAI_API_KEY",),
+        base_url_env_var="OPENAI_BASE_URL",
+    ),
     "zai": ProviderConfig(
         id="zai",
         name="Z.AI / GLM",

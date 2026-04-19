@@ -62,8 +62,11 @@ from tools.interrupt import is_interrupted, _interrupt_event  # noqa: F401 — r
 # Custom Singularity Environment with more space
 # =============================================================================
 
-# Singularity helpers (scratch dir, SIF cache) now live in tools/environments/singularity.py
-from tools.environments.singularity import _get_scratch_dir
+# Singularity/Modal/Daytona backends removed in Athena trim.
+# Scratch dir for disk usage checks uses /tmp.
+def _get_scratch_dir():
+    """Return the scratch directory for temporary environment files."""
+    return Path("/tmp")
 from tools.tool_backend_helpers import (
     coerce_modal_mode,
     has_direct_modal_credentials,
@@ -501,11 +504,9 @@ def _transform_sudo_command(command: str | None) -> tuple[str | None, str | None
 
 # Environment classes now live in tools/environments/
 from tools.environments.local import LocalEnvironment as _LocalEnvironment
-from tools.environments.singularity import SingularityEnvironment as _SingularityEnvironment
 from tools.environments.ssh import SSHEnvironment as _SSHEnvironment
 from tools.environments.docker import DockerEnvironment as _DockerEnvironment
-from tools.environments.modal import ModalEnvironment as _ModalEnvironment
-from tools.environments.managed_modal import ManagedModalEnvironment as _ManagedModalEnvironment
+# Singularity, Modal, Daytona backends removed in Athena trim.
 from tools.managed_tool_gateway import is_managed_tool_gateway_ready
 
 

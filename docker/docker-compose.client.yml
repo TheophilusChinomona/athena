@@ -2,8 +2,8 @@
 # ---
 # Setup:
 #   1. Copy this file to the client server
-#   2. Create a .env file with the required variables (see below)
-#   3. Create a workspace/ directory with SOUL.md, IDENTITY.md, GOALS.md
+#   2. Create a .env file (see bottom of this file)
+#   3. Create workspace/ with SOUL.md, IDENTITY.md, GOALS.md, AGENTS.md
 #   4. Authenticate to the GitLab registry:
 #      echo "$REGISTRY_TOKEN" | docker login registry.gitlab.com -u deploy --password-stdin
 #   5. docker compose up -d
@@ -13,15 +13,54 @@ services:
     image: registry.gitlab.com/chinomonatinotenda19/hermes-agent:latest
     container_name: hermes-${CLIENT_ID}
     restart: unless-stopped
+
     volumes:
+      # Agent data — memories, sessions, logs, config, skills (all read/write)
       - hermes-data:/opt/data
-      - ./workspace:/opt/data/workspace:ro
+      # Client workspace — SOUL.md, IDENTITY.md, GOALS.md, AGENTS.md (read/write
+      # so the agent can update its own goals and memory files)
+      - ./workspace:/opt/data/workspace
+
+    tmpfs:
+      # Exec scratch space — all subprocess/code execution temp files live here,
+      # never touch the host disk, wiped on container restart
+      - /tmp:size=256m,mode=1777
+
     environment:
       - HERMES_HOME=/opt/data
       - TZ=${TZ:-Africa/Johannesburg}
     env_file:
       - .env
 
+    # ── Capability scoping ────────────────────────────────────────────
+    # Drop everything, then add only what gosu needs to drop root → hermes.
+    # The agent itself runs as UID 10000 (hermes) with no extra caps.
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN       # entrypoint fixes /opt/data ownership on first run
+      - SETUID      # gosu: switch from root → hermes
+      - SETGID      # gosu: switch group
+      - KILL        # agent process management (cron, background tasks)
+
+    # ── No host escape paths ──────────────────────────────────────────
+    # Docker socket is intentionally absent — exec runs inside the container
+    # only. Agent cannot spawn sibling containers or access host Docker.
+
+    # ── Resource limits ───────────────────────────────────────────────
+    # Prevent runaway code execution from consuming the host.
+    mem_limit: 1g
+    memswap_limit: 1g
+    cpus: "1.0"
+
+    # ── Network ───────────────────────────────────────────────────────
+    networks:
+      - hermes-internal
+
+  # ── Auto-updater ─────────────────────────────────────────────────────
+  # Polls the registry every 5 minutes. When a new image is pushed to
+  # :latest, Watchtower pulls it and restarts the hermes container.
+  # Requires ~/.docker/config.json with registry.gitlab.com credentials.
   watchtower:
     image: containrrr/watchtower:latest
     container_name: hermes-${CLIENT_ID}-watchtower
@@ -30,13 +69,23 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${HOME}/.docker/config.json:/config.json:ro
     command: --interval 300 --cleanup hermes-${CLIENT_ID}
-    environment:
-      - WATCHTOWER_NOTIFICATIONS=off
+    networks:
+      - hermes-internal
 
 volumes:
   hermes-data:
 
-# Required .env variables:
-# CLIENT_ID=clientname          — used to name containers uniquely
-# TZ=Africa/Johannesburg        — timezone
-# Plus any agent-specific env vars (API keys, channel tokens, etc.)
+networks:
+  hermes-internal:
+    driver: bridge
+
+# ── Required .env variables ───────────────────────────────────────────
+# CLIENT_ID=acme                  — unique name, used for container naming
+# TZ=Africa/Johannesburg          — timezone
+#
+# Channel credentials (add whichever channels this client uses):
+# WHATSAPP_TOKEN=...
+# TELEGRAM_BOT_TOKEN=...
+#
+# Model API keys:
+# OPENROUTER_API_KEY=...          — or ANTHROPIC_API_KEY / OPENAI_API_KEY

@@ -1,5 +1,6 @@
 stages:
   - build
+  - mirror
 
 build-image:
   stage: build
@@ -24,3 +25,13 @@ build-image:
         -d "{\"ref\":\"refs/heads/main\",\"after\":\"$CI_COMMIT_SHA\"}"
   after_script:
     - docker logout $CI_REGISTRY
+
+mirror-to-github:
+  stage: mirror
+  tags:
+    - build-node
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - git remote add github https://TheophilusChinomona:${GITHUB_MIRROR_TOKEN}@github.com/TheophilusChinomona/hermes-agent.git
+    - git push github HEAD:main

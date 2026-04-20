@@ -1,0 +1,42 @@
+# Client deployment template for Hermes Agent
+# ---
+# Setup:
+#   1. Copy this file to the client server
+#   2. Create a .env file with the required variables (see below)
+#   3. Create a workspace/ directory with SOUL.md, IDENTITY.md, GOALS.md
+#   4. Authenticate to the GitLab registry:
+#      echo "$REGISTRY_TOKEN" | docker login registry.gitlab.com -u deploy --password-stdin
+#   5. docker compose up -d
+
+services:
+  hermes:
+    image: registry.gitlab.com/chinomonatinotenda19/hermes-agent:latest
+    container_name: hermes-${CLIENT_ID}
+    restart: unless-stopped
+    volumes:
+      - hermes-data:/opt/data
+      - ./workspace:/opt/data/workspace:ro
+    environment:
+      - HERMES_HOME=/opt/data
+      - TZ=${TZ:-Africa/Johannesburg}
+    env_file:
+      - .env
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: hermes-${CLIENT_ID}-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${HOME}/.docker/config.json:/config.json:ro
+    command: --interval 300 --cleanup hermes-${CLIENT_ID}
+    environment:
+      - WATCHTOWER_NOTIFICATIONS=off
+
+volumes:
+  hermes-data:
+
+# Required .env variables:
+# CLIENT_ID=clientname          — used to name containers uniquely
+# TZ=Africa/Johannesburg        — timezone
+# Plus any agent-specific env vars (API keys, channel tokens, etc.)

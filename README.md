@@ -1,5 +1,9 @@
 # Athena
 
+<p align="center">
+  <img src="assets/athena_ascii.png" alt="Athena" width="220">
+</p>
+
 **The reliability fork of [Hermes Agent](https://github.com/NousResearch/hermes-agent).**
 
 <p align="center">

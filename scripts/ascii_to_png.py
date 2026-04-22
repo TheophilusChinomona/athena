@@ -175,6 +175,68 @@ def parse_rich_markup(art: str) -> list[list[tuple[str, tuple[int, int, int], fl
 # PNG renderer
 # ---------------------------------------------------------------------------
 
+_BOLD_FONT_CANDIDATES = [
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+]
+
+# Athena gradient — silver at top, midnight blue at bottom, one stop per letter
+_TITLE_GRADIENT = [
+    (192, 200, 216),  # A — silver
+    (168, 184, 204),  # T
+    (123, 158, 200),  # H
+    (90,  123, 168),  # E
+    (74,  111, 165),  # N
+    (42,   61,  90),  # A — midnight blue
+]
+
+
+def render_title(text: str, target_width: int) -> Image.Image:
+    """Render title text in a bold font with the Athena silver→blue gradient.
+
+    The font size is auto-scaled so the text fills ~90% of target_width.
+    Returns a transparent RGBA image.
+    """
+    bold_path = next((p for p in _BOLD_FONT_CANDIDATES if Path(p).exists()), None)
+    if bold_path is None:
+        # Fallback: render the ASCII logo art at a larger size
+        font = _load_font(48)
+        cw, ch = _measure_cell(font)
+        return render_art_to_image(ATHENA_LOGO, font, cw, ch)
+
+    # Binary-search for the right font size
+    lo, hi = 12, 400
+    while lo < hi - 1:
+        mid = (lo + hi) // 2
+        f = ImageFont.truetype(bold_path, mid)
+        bb = f.getbbox(text)
+        if bb[2] - bb[0] < target_width * 0.90:
+            lo = mid
+        else:
+            hi = mid
+    font = ImageFont.truetype(bold_path, lo)
+
+    bb = font.getbbox(text)
+    tw, th = bb[2] - bb[0], bb[3] - bb[1]
+    pad_v = lo // 4
+    img_w = max(tw + lo, target_width)
+    img_h = th + pad_v * 2
+
+    img = Image.new("RGBA", (img_w, img_h), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+
+    x = (img_w - tw) // 2 - bb[0]
+    y = pad_v - bb[1]
+    gradient = _TITLE_GRADIENT
+    for i, ch in enumerate(text):
+        color = gradient[i % len(gradient)]
+        draw.text((x, y), ch, font=font, fill=(*color, 255))
+        x += font.getlength(ch)
+
+    return img
+
+
 _FONT_CANDIDATES = [
     "/usr/share/fonts/opentype/unifont/unifont.otf",
     "/usr/share/fonts/truetype/unifont/unifont.ttf",
@@ -286,19 +348,21 @@ def main() -> None:
 
     images = []
 
+    # Owl pixel art — measure its width so the title can match it
+    owl_art = build_owl_art()
+    owl_img = render_art_to_image(owl_art, font, char_w, char_h)
+
     if args.art in ("current", "both"):
         print("Rendering current Athena art (logo + hero)…")
-        logo_img = render_art_to_image(ATHENA_LOGO, font, char_w, char_h)
+        logo_img = render_title("ATHENA", owl_img.width)
         hero_img = render_art_to_image(ATHENA_HERO, font, char_w, char_h)
         combined = combine_vertically([logo_img, hero_img], gap=char_h)
         images.append(combined)
 
     if args.art in ("owl", "both"):
         print("Rendering new owl art…")
-        owl_art = build_owl_art()
-        logo_img = render_art_to_image(ATHENA_LOGO, font, char_w, char_h)
-        owl_img = render_art_to_image(owl_art, font, char_w, char_h)
-        combined = combine_vertically([logo_img, owl_img], gap=char_h)
+        logo_img = render_title("ATHENA", owl_img.width)
+        combined = combine_vertically([logo_img, owl_img], gap=char_h // 2)
         images.append(combined)
 
     if len(images) > 1:

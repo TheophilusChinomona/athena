@@ -8,24 +8,57 @@ build-image:
     - build-node
   timeout: 3h
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == "stable"
+    - if: $CI_COMMIT_BRANCH == "staging"
+    - if: $CI_COMMIT_BRANCH == "prod"
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
-    - docker pull $CI_REGISTRY_IMAGE:latest || true
     - |
+      case "$CI_COMMIT_BRANCH" in
+        stable)
+          IMAGE_TAGS="stable stable-$CI_COMMIT_SHORT_SHA"
+          DEPLOY_HOOK="${DEPLOY_WEBHOOK_STABLE_URL:-}"
+          ;;
+        staging)
+          IMAGE_TAGS="staging staging-$CI_COMMIT_SHORT_SHA"
+          DEPLOY_HOOK="${DEPLOY_WEBHOOK_STAGING_URL:-}"
+          ;;
+        prod)
+          IMAGE_TAGS="prod latest prod-$CI_COMMIT_SHORT_SHA"
+          DEPLOY_HOOK="${DEPLOY_WEBHOOK_PROD_URL:-}"
+          ;;
+        *)
+          echo "Unsupported publish branch: $CI_COMMIT_BRANCH"
+          exit 1
+          ;;
+      esac
+
+      PRIMARY_TAG=$(printf '%s\n' "$IMAGE_TAGS" | awk '{print $1}')
+      docker pull "$CI_REGISTRY_IMAGE:$PRIMARY_TAG" || docker pull "$CI_REGISTRY_IMAGE:latest" || true
+
+      BUILD_TAG_ARGS=""
+      for tag in $IMAGE_TAGS; do
+        BUILD_TAG_ARGS="$BUILD_TAG_ARGS -t $CI_REGISTRY_IMAGE:$tag"
+      done
+
+      # shellcheck disable=SC2086
       docker build \
-        --cache-from $CI_REGISTRY_IMAGE:latest \
-        -t $CI_REGISTRY_IMAGE:latest \
-        -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA \
+        --cache-from "$CI_REGISTRY_IMAGE:$PRIMARY_TAG" \
+        --cache-from "$CI_REGISTRY_IMAGE:latest" \
+        $BUILD_TAG_ARGS \
         .
-    - docker push $CI_REGISTRY_IMAGE:latest
-    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-    - |
-      curl -s -X POST http://hooks.theochinomona.tech/deploy/hermes-agent \
-        -H "X-Gitlab-Token: $DEPLOY_WEBHOOK_SECRET" \
-        -H "Content-Type: application/json" \
-        -d "{\"ref\":\"refs/heads/main\",\"after\":\"$CI_COMMIT_SHA\"}"
+
+      for tag in $IMAGE_TAGS; do
+        docker push "$CI_REGISTRY_IMAGE:$tag"
+      done
+
+      if [ -n "$DEPLOY_HOOK" ]; then
+        curl -s -X POST "$DEPLOY_HOOK" \
+          -H "X-Gitlab-Token: $DEPLOY_WEBHOOK_SECRET" \
+          -H "Content-Type: application/json" \
+          -d "{\"ref\":\"refs/heads/$CI_COMMIT_BRANCH\",\"after\":\"$CI_COMMIT_SHA\",\"image\":\"$CI_REGISTRY_IMAGE:$PRIMARY_TAG\"}"
+      fi
   after_script:
     - docker logout $CI_REGISTRY
 
@@ -36,5 +69,6 @@ mirror-to-github:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
-    - git remote add github https://TheophilusChinomona:${GITHUB_MIRROR_TOKEN}@github.com/TheophilusChinomona/hermes-agent.git
+    - git remote remove github 2>/dev/null || true
+    - git remote add github https://TheophilusChinomona:${GITHUB_MIRROR_TOKEN}@github.com/TheophilusChinomona/athena.git
     - git push github HEAD:main
